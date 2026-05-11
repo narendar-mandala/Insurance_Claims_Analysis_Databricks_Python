@@ -7,7 +7,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog", "hive_metastore", "Catalog")
+dbutils.widgets.text("catalog", "workspace", "Catalog")
 dbutils.widgets.text("env",     "dev",            "Environment (dev/prod)")
 
 CATALOG = dbutils.widgets.get("catalog")

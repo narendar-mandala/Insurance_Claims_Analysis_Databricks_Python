@@ -19,7 +19,7 @@
 from pyspark.sql import functions as F
 from datetime import datetime
 
-dbutils.widgets.text("catalog", "hive_metastore", "Catalog")
+dbutils.widgets.text("catalog", "workspace", "Catalog")
 dbutils.widgets.text("env",     "dev",            "Environment")
 
 CATALOG  = dbutils.widgets.get("catalog")

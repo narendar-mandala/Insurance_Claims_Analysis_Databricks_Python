@@ -7,8 +7,8 @@ pipeline:
   owner: narendar.mandala@gmail.com
 
 catalog:
-  dev:  hive_metastore
-  prod: hive_metastore        # Update to Unity Catalog name when available
+  dev:  workspace
+  prod: workspace
 
 schemas:
   bronze_prefix: insurance_bronze

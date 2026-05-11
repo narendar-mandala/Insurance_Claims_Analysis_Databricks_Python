@@ -6,7 +6,7 @@ workspace:
 
 variables:
   catalog:
-    default: hive_metastore
+    default: workspace
   env:
     default: dev
 

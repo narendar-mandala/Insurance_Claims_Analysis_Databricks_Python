@@ -26,7 +26,7 @@ from pyspark.sql import functions as F, Window
 from pyspark.sql.types import DoubleType, DateType, IntegerType
 import re
 
-dbutils.widgets.text("catalog", "hive_metastore", "Catalog")
+dbutils.widgets.text("catalog", "workspace", "Catalog")
 dbutils.widgets.text("env",     "dev",            "Environment")
 
 CATALOG = dbutils.widgets.get("catalog")
