@@ -16,7 +16,7 @@ schemas:
   gold_prefix:   insurance_gold
 
 raw_data:
-  landing_path: dbfs:/FileStore/insurance_claims/{env}/raw
+  landing_path: /Volumes/workspace/insurance_analytics/source-files
   files:
     - Claims_v6.csv
     - Policy_Holders_v6.csv

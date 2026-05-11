@@ -26,8 +26,7 @@ for schema in [BRONZE, SILVER, GOLD]:
 # COMMAND ----------
 
 # Shared DBFS paths for raw CSV uploads
-RAW_PATH = f"dbfs:/FileStore/insurance_claims/{ENV}/raw"
-dbutils.fs.mkdirs(RAW_PATH)
+RAW_PATH = "/Volumes/workspace/insurance_analytics/source-files"
 print(f"Raw data landing zone: {RAW_PATH}")
 
 # COMMAND ----------

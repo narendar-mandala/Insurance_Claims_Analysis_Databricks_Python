@@ -25,7 +25,7 @@ dbutils.widgets.text("env",     "dev",            "Environment")
 CATALOG  = dbutils.widgets.get("catalog")
 ENV      = dbutils.widgets.get("env")
 BRONZE   = f"{CATALOG}.insurance_bronze_{ENV}"
-RAW_PATH = f"dbfs:/FileStore/insurance_claims/{ENV}/raw"
+RAW_PATH = "/Volumes/workspace/insurance_analytics/source-files"
 
 INGESTION_TS = datetime.utcnow().isoformat()
 
