@@ -1,0 +1,49 @@
+# Insurance Claims Analysis — Pipeline Configuration
+# Referenced by notebooks via dbutils.widgets or Databricks job parameters.
+
+pipeline:
+  name: insurance_claims_analysis
+  version: "1.0.0"
+  owner: narendar.mandala@gmail.com
+
+catalog:
+  dev:  hive_metastore
+  prod: hive_metastore        # Update to Unity Catalog name when available
+
+schemas:
+  bronze_prefix: insurance_bronze
+  silver_prefix: insurance_silver
+  gold_prefix:   insurance_gold
+
+raw_data:
+  landing_path: dbfs:/FileStore/insurance_claims/{env}/raw
+  files:
+    - Claims_v6.csv
+    - Policy_Holders_v6.csv
+    - Adjusters_v6.csv
+    - Insurance_Claims_Analytics_Power_BI.csv
+
+data_quality:
+  valid_claim_statuses: [Paid, "In Review", Closed, Denied, Open]
+  valid_claim_types:    [Liability, Theft, Medical, Fire, Accident]
+  valid_policy_types:   [Life, Home, Auto, Health]
+  outlier_multiplier:   3.0      # flag amounts > N × median for claim type
+  quarantine_flags:             # rows matching any of these go to quarantine
+    - dq_null_fields
+    - dq_orphan_claim
+    - dq_invalid_adjuster
+    - dq_bad_enum
+
+gold_tables:
+  - claims_summary_by_status
+  - claims_summary_by_type
+  - monthly_claims_trend
+  - adjuster_performance
+  - regional_claims_summary
+  - policy_holder_analysis
+  - dq_scorecard
+
+alerting:
+  high_severity_dq_threshold_pct: 5.0
+  loss_ratio_alert_threshold:     1.0   # alert if any region/policy type exceeds 100%
+  open_rate_alert_threshold_pct:  30.0  # alert adjusters with >30% open claims

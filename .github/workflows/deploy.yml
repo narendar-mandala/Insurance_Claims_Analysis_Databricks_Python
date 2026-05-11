@@ -1,0 +1,79 @@
+name: Deploy Insurance Claims Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deployment target (dev / prod)"
+        required: true
+        default: "dev"
+
+jobs:
+  validate:
+    name: Validate Bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli>=0.18
+
+      - name: Validate bundle (dry run)
+        env:
+          DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle validate
+
+  deploy-dev:
+    name: Deploy → Dev
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || github.event.inputs.target == 'dev'
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli>=0.18
+
+      - name: Deploy to Dev
+        env:
+          DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle deploy --target dev
+
+  deploy-prod:
+    name: Deploy → Prod
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event.inputs.target == 'prod'
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli>=0.18
+
+      - name: Deploy to Prod
+        env:
+          DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle deploy --target prod
+
+      - name: Run Pipeline (Prod)
+        env:
+          DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle run insurance_claims_pipeline --target prod

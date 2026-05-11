@@ -1,0 +1,108 @@
+bundle:
+  name: insurance_claims_analysis
+
+workspace:
+  host: https://dbc-67b2619d-a17e.cloud.databricks.com
+
+variables:
+  catalog:
+    default: hive_metastore
+  env:
+    default: dev
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      env: dev
+    workspace:
+      root_path: /Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
+
+  prod:
+    mode: production
+    variables:
+      env: prod
+    workspace:
+      root_path: /Shared/bundles/${bundle.name}
+
+resources:
+  jobs:
+    insurance_claims_pipeline:
+      name: "[${bundle.target}] Insurance Claims Analysis Pipeline"
+      description: >
+        End-to-end medallion pipeline: Bronze ingestion → Silver DQ cleansing
+        → Gold aggregations → Analytics dashboard.
+
+      job_clusters:
+        - job_cluster_key: pipeline_cluster
+          new_cluster:
+            spark_version: "13.3.x-scala2.12"
+            node_type_id: i3.xlarge
+            num_workers: 2
+            spark_conf:
+              spark.sql.extensions: io.delta.sql.DeltaSparkSessionExtension
+              spark.sql.catalog.spark_catalog: org.apache.spark.sql.delta.catalog.DeltaCatalog
+            custom_tags:
+              project: insurance_claims_analysis
+              team: data_engineering
+
+      tasks:
+        - task_key: setup_environment
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/notebooks/00_setup_environment
+            base_parameters:
+              catalog: ${var.catalog}
+              env: ${var.env}
+
+        - task_key: bronze_ingestion
+          depends_on:
+            - task_key: setup_environment
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/notebooks/01_bronze_ingestion
+            base_parameters:
+              catalog: ${var.catalog}
+              env: ${var.env}
+
+        - task_key: silver_quality_cleansing
+          depends_on:
+            - task_key: bronze_ingestion
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/notebooks/02_silver_quality_cleansing
+            base_parameters:
+              catalog: ${var.catalog}
+              env: ${var.env}
+
+        - task_key: gold_aggregations
+          depends_on:
+            - task_key: silver_quality_cleansing
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/notebooks/03_gold_aggregations
+            base_parameters:
+              catalog: ${var.catalog}
+              env: ${var.env}
+
+        - task_key: analytics_dashboard
+          depends_on:
+            - task_key: gold_aggregations
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/notebooks/04_analytics_dashboard
+            base_parameters:
+              catalog: ${var.catalog}
+              env: ${var.env}
+
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"  # Daily at 06:00 UTC
+        timezone_id: UTC
+        pause_status: UNPAUSED
+
+      email_notifications:
+        on_failure:
+          - narendar.mandala@gmail.com
+
+      max_concurrent_runs: 1
