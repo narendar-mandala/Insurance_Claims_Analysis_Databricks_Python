@@ -66,13 +66,9 @@ def add_dq_flag(df, flag_col: str, condition):
 
 # COMMAND ----------
 
-claims_raw   = spark.table(f"{BRONZE}.claims_raw")
-policies_raw = spark.table(f"{BRONZE}.policy_holders_raw")
+claims_raw    = spark.table(f"{BRONZE}.claims_raw")
+policies_raw  = spark.table(f"{BRONZE}.policy_holders_raw")
 adjusters_raw = spark.table(f"{BRONZE}.adjusters_raw")
-
-# Reference sets for integrity checks
-valid_policy_ids  = {row.PolicyID  for row in policies_raw.select("PolicyID").collect()}
-valid_adjuster_ids = {row.AdjusterID for row in adjusters_raw.select("AdjusterID").collect()}
 
 # COMMAND ----------
 
@@ -160,23 +156,31 @@ claims = (
     .drop("_row_rank")
 )
 
-# --- Check 3: Orphan PolicyID ---
-valid_pids_bc = spark.sparkContext.broadcast(valid_policy_ids)
+# --- Check 3: Orphan PolicyID (join-based — serverless compatible) ---
+valid_pid_df = (
+    policies_raw
+    .select(F.col("PolicyID").cast(IntegerType()).alias("_valid_pid"))
+    .distinct()
+)
+claims = (
+    claims
+    .join(valid_pid_df, claims.PolicyID == valid_pid_df._valid_pid, "left")
+    .withColumn("dq_orphan_claim", F.col("_valid_pid").isNull())
+    .drop("_valid_pid")
+)
 
-@F.udf("boolean")
-def is_invalid_policy(pid):
-    return pid not in valid_pids_bc.value if pid is not None else True
-
-claims = add_dq_flag(claims, "dq_orphan_claim", is_invalid_policy(F.col("PolicyID")))
-
-# --- Check 4: Invalid AdjusterID ---
-valid_aids_bc = spark.sparkContext.broadcast(valid_adjuster_ids)
-
-@F.udf("boolean")
-def is_invalid_adjuster(aid):
-    return aid not in valid_aids_bc.value if aid is not None else True
-
-claims = add_dq_flag(claims, "dq_invalid_adjuster", is_invalid_adjuster(F.col("AdjusterID")))
+# --- Check 4: Invalid AdjusterID (join-based — serverless compatible) ---
+valid_aid_df = (
+    adjusters_raw
+    .select(F.col("AdjusterID").cast(IntegerType()).alias("_valid_aid"))
+    .distinct()
+)
+claims = (
+    claims
+    .join(valid_aid_df, claims.AdjusterID == valid_aid_df._valid_aid, "left")
+    .withColumn("dq_invalid_adjuster", F.col("_valid_aid").isNull())
+    .drop("_valid_aid")
+)
 
 # --- Check 5: Enum validation ---
 claims = add_dq_flag(
