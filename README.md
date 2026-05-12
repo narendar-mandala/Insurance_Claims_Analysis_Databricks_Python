@@ -294,7 +294,7 @@ Go to **GitHub repo → Settings → Secrets and Variables → Actions** and add
 | Secret | Value |
 |--------|-------|
 | `DATABRICKS_HOST` | `https://dbc-67b2619d-a17e.cloud.databricks.com` |
-| `DATABRICKS_TOKEN` | Your Databricks PAT |
+| `DATABRICKS_TOKEN` | XXXXXXX |
 
 ---
 
